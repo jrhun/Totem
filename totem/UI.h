@@ -6,6 +6,12 @@
 #define NUM_BUTTONS       4
 #define UI_LEDS   3
 
+//TODO
+// VISUAL FEEDBACK FOR MODES
+// EXTRA MODES (e.g. hue speed select, single hue select)
+// refactor button handle code (single handleButton fn that takes (button pressed and press type) and calls relevant fns)
+
+
 // Enum definitions
 enum UIState_t : uint8_t {pattern, brightness, speed}; 
 enum buttonPress_t : uint8_t {shortPress, longPress};
@@ -20,6 +26,7 @@ class UI
    
     void setupUI();
     void handleUI();
+    void renderUI();      //potentially use LCD display or OSC messages
  private:
     Control *Control_m; 
     UIState_t UIState;
@@ -207,7 +214,7 @@ void UI::incButton(buttonPress_t p)
     case speed :
       // inc speed
       DEBUG_L("\t(inc speed)");
-      //Control_m->incSpeed(5);
+      Control_m->incHueSpeed();
       break;
     }
   } else if (p == longPress)
@@ -261,7 +268,7 @@ void UI::decButton(buttonPress_t p)
     case speed :
       // dec speed
       DEBUG_L("\t(dec speed)");
-//      Control_m->decSpeed(5);
+      Control_m->decHueSpeed();
       break;
     }
   } else if (p == longPress)
@@ -311,5 +318,12 @@ void UI::fnButton(buttonPress_t p)
       break;
     }
   }
+}
+
+
+void UI::renderUI() {
+  //potentially output to OSC
+  
+  
 }
 

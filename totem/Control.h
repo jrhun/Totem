@@ -13,6 +13,11 @@
 #else
   #define DEBUG(x)
 #endif
+#define DISPLAY
+#ifdef DISPLAY
+  #define DISPLAY(x)    Serial.print(x)
+  #define DISPLAY_L(x)  Serial.println(x)
+#endif
 
 #include <FastLED.h>
 
@@ -28,6 +33,10 @@ const bool MatrixSerpentineLayout = false; //if LEDs are snaking or not (most li
 #define TEMPERATURE OvercastSky
 
 #define TAP_PIN           A0    //for tap tempo
+
+// todo MORE PATTERNS
+// sync all patterns to BPM using bool beatNow (see rolling_rows() for example)
+// implement hue speed changes
 
 class Control
 {
@@ -52,7 +61,9 @@ class Control
     void set_pattern(uint8_t pattern) {currentPatternNumber = pattern;}
     void inc_pattern();
     void dec_pattern();
-    void set_speed(uint8_t speeed) {speed_m = speeed;}
+    void setHueSpeed(uint8_t speeed) {speed_m = speeed;}    // control speed at which hue changes
+    void incHueSpeed();
+    void decHueSpeed();
     void set_tempo(unsigned short tempo) {tempo_m = tempo;}
 
     //tap tempo functions

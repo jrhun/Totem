@@ -47,14 +47,19 @@ void Control::handleControl()
   EVERY_N_MILLISECONDS( 20 ) { hue_m++; }
 }
 
-void Control::inc_pattern()
-{
+void Control::inc_pattern(){
   currentPatternNumber = (currentPatternNumber + 1) % numPatterns;
 }
-void Control::dec_pattern()
-{
+void Control::dec_pattern(){
   if (currentPatternNumber == 0) {currentPatternNumber = numPatterns - 1;}
   else                           {currentPatternNumber--;}
+}
+
+void Control::incHueSpeed(){
+  //
+}
+void Control::decHueSpeed() {
+  //
 }
 
 /******************************/
@@ -106,6 +111,8 @@ uint8_t Control::atRowCol(uint8_t row, uint8_t col)
   
   return i; 
 }
+
+
 
 /******************************/
 /*        PATTERNS            */
@@ -191,16 +198,6 @@ void Control::rolling_rows_diag()
     }
   }
 }
-
-//void set_brightness(uint8_t brightness)
-//{
-//  brightness_m = brightness;
-//}
-//void set_pattern(uint8_t pattern);// {pattern_m = pattern};
-//void set_speed(uint8_t speeed);// {speed_m = speeed};
-//
-//    void set_tempo(unsigned short tempo_m); 
-
 
 
 
