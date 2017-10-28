@@ -18,14 +18,15 @@
 
 // Information about the LED strip itself
 #define LED_PIN     9
-#define NUM_LEDS    20
+#define NUM_COLS    8
+#define NUM_ROWS    8
+#define NUM_LEDS    (NUM_COLS * NUM_ROWS) //using an 8x8 matrix of LEDS eventually...
+//#define NUM_LEDS    8
+const bool MatrixSerpentineLayout = false; //if LEDs are snaking or not (most likely, yes)
 #define CHIPSET     WS2812B
 #define COLOR_ORDER GRB
 #define TEMPERATURE OvercastSky
 
-//using an 8x8 matrix of LEDS eventually...
-//#define ROWS        8
-//#define COLS        8
 #define TAP_PIN           A0    //for tap tempo
 
 class Control
@@ -48,7 +49,9 @@ class Control
     void incBrightness(uint8_t i = 3) {brightness_m = min(brightness_m + i, 255); FastLED.setBrightness(brightness_m);}
     uint8_t getBrightness() {return brightness_m;};
     
-    void set_pattern(uint8_t pattern) {pattern_m = pattern;}
+    void set_pattern(uint8_t pattern) {currentPatternNumber = pattern;}
+    void inc_pattern();
+    void dec_pattern();
     void set_speed(uint8_t speeed) {speed_m = speeed;}
     void set_tempo(unsigned short tempo) {tempo_m = tempo;}
 
@@ -58,16 +61,15 @@ class Control
     void tap();
 
   private:
+    //Varibles for FPS
     const uint8_t FPS = 60; 
     unsigned long lastUpdate;
 
-    //TODO intensity setting for effects
+    //UI related variables
     uint8_t brightness_m;
     uint8_t speed_m; 
+    uint8_t currentPatternNumber;
     unsigned short tempo_m; // recorded as the miliseconds between two beats e.g. 120BPM = 500msec between beats
-    uint8_t pattern_m;
-    uint8_t numPatterns_m;
-    bool newPattern_m;    //used to initialise new patterns
 
     //LEDS and helper functions
     CRGB *leds_m;
@@ -75,12 +77,35 @@ class Control
     //LEDS are arranged in an 8X8 design around a globe
     //array has bottom to top, clockwise fashion. 
     // e.g. 0-7 is 12o'clock, bottom to top, 8-15 is next column (~1.20o'clock) bottom to top, etc. 
-    void selectRow(CRGB *leds[8], uint8_t row);
-    void selectCol(CRGB *leds[8], uint8_t col);
+    void selectRow(uint8_t row, CRGB *leds[8]);   // for manipulating a whole row at once
+    void selectCol(uint8_t col, CRGB *leds[8]);   // for manipulating a whole column at once
+    uint8_t atRowCol(uint8_t row, uint8_t col);     // returns index i of led at row & col (accounting for Serpentine order)
 
-    //tap tempo control
+    /******************************/
+    /*        PATTERNS            */
+    /******************************/
+    //Pattern variables
+    uint8_t hue_m;      //rotating 'base colour' used by patterns
+    bool newPattern_m;    //used to initialise new patterns
+    
+    //Pattern array
+    static const uint8_t numPatterns = 4;
+    typedef void (Control::*PatternList[numPatterns])();
+    PatternList patterns_m = { &rolling_rows_diag, &rolling_rows, &scroll_rows, &BPM_boogie  };;   // BPM_boogie, scroll_rows
+    
+    //Patterns
+    void BPM_boogie();
+    void scroll_rows();
+    void rolling_rows();
+    void rolling_rows_diag();
+
+
+    /******************************/
+    /*      TAP TEMPO CONTROL     */
+    /******************************/
     //variables
     int lastTapState = LOW;  /* the last tap button state */
+    bool beatNow = false;
     unsigned long currentTimer[2] = { 500, 500 };  /* array of most recent tap counts */
     unsigned long timeoutTime = 0;  /* this is when the timer will trigger next */
 

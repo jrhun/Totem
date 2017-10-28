@@ -195,7 +195,7 @@ void UI::incButton(buttonPress_t p)
     case pattern :
       // increment pattern
       DEBUG_L("\t(inc pattern)");
-      //Control_m->incPattern();
+      Control_m->inc_pattern();
       break;
     case brightness :
       // inc brightness
@@ -249,7 +249,7 @@ void UI::decButton(buttonPress_t p)
     case pattern :
       // decrement pattern
       DEBUG_L("\t(dec pattern)");
-//      Control_m->decPattern();
+      Control_m->dec_pattern();
       break;
     case brightness :
       // dec brightness
