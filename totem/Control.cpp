@@ -69,8 +69,8 @@ void Control::selectRow(uint8_t row,CRGB *leds[NUM_COLS])
 {
   // pass it a pointer to a CRGB pointer array[NUM_COLS], and it'll populate it with the pointers to leds in the column of the selected row
   // MUST PASS A SIZE NUM_COL ARRAY OF POINTERS
-  for (uint8_t i = 0; i < NUM_ROWS; i++){
-    leds[i] = &leds_m[row + i*NUM_COLS];
+  for (uint8_t col = 0; col < NUM_ROWS; col++){
+    leds[col] = &leds_m[ atRowCol(row,col) ];
 //    DEBUG("Led number in array:\t");
 //    DEBUG_L(row + i*8);
   }
@@ -79,10 +79,10 @@ void Control::selectCol(uint8_t col,CRGB *leds[NUM_ROWS])
 {
   // pass it a pointer to a CRGB pointer array[8], and it'll populate it with the pointers of the selected col
   // MUST PASS A SIZE NUM_ROWS ARRAY OF POINTERS
-  for (uint8_t i = 0; i < NUM_ROWS; i++) {
+  for (uint8_t row = 0; row < NUM_ROWS; row++) {
     // i = number in row
     
-    leds[i] = &leds_m[col*NUM_COLS + i];
+    leds[row] = &leds_m[atRowCol(row, col)];
 //    DEBUG("Led number in array:\t");
 //    DEBUG_L(col*8 + i);
   }
@@ -152,9 +152,10 @@ void Control::rolling_rows()
     beatNow = false;
     currentRow = (currentRow + 1) % NUM_ROWS; // select next row and wrap around if at top
     for (uint8_t col = 0; col < NUM_COLS; col++) {
-      CRGB *col_leds[8];
-      selectCol(col, col_leds);
-      *col_leds[currentRow] += CHSV( hue_m+15*col, 255, 192);  
+//      CRGB *col_leds[8];
+//      selectCol(col, col_leds);
+//      *col_leds[currentRow] += CHSV( hue_m+15*col, 255, 192);  
+      leds_m[atRowCol(currentRow, col)] += CHSV( hue_m+15*col, 255, 192);  
     }
     
   }

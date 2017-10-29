@@ -323,6 +323,8 @@ void UI::fnButton(buttonPress_t p)
 
 void UI::renderUI() {
   //potentially output to OSC
+  uint8_t brightness_temp = 96;
+  uint8_t speed_temp = 10;
   
   
 }
