@@ -89,7 +89,9 @@ class Control
     //array has bottom to top, clockwise fashion. 
     // e.g. 0-7 is 12o'clock, bottom to top, 8-15 is next column (~1.20o'clock) bottom to top, etc. 
     void selectRow(uint8_t row, CRGB *leds[8]);   // for manipulating a whole row at once
+    CRGB * selectRow2(uint8_t row);
     void selectCol(uint8_t col, CRGB *leds[8]);   // for manipulating a whole column at once
+    CRGB * selectCol2(uint8_t col);
     uint8_t atRowCol(uint8_t row, uint8_t col);     // returns index i of led at row & col (accounting for Serpentine order)
 
     /******************************/

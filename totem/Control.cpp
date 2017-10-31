@@ -20,25 +20,18 @@ void Control::setupControl()
   
 void Control::handleControl() 
 {
-  // Monitors for UI input
-  // Updates UI components
+  // Monitors for UI input???
+  // Updates UI components??? (done in UI - could reconsolidate)
 
-  
   // Calls patterns once to render if ready for it, then updates LEDs
   unsigned long lastInterval = millis() - lastUpdate;      //essetnailly currentMillis - lastUpdate
   if (lastInterval >= (1000/FPS))
   {
     lastUpdate = millis();
     // Call the current pattern function once, updating the 'leds' array
-    //gPatterns[gCurrentPatternNumber]();
-    
-//    static uint8_t starthue = 0;
-//    fill_rainbow( leds_m, nLeds_m, --starthue, 20);
-
-
-    // run pattern
     (this->*patterns_m[currentPatternNumber])();
-    
+
+    //update the leds
     FastLED.show();
   }
 
@@ -75,6 +68,16 @@ void Control::selectRow(uint8_t row,CRGB *leds[NUM_COLS])
 //    DEBUG_L(row + i*8);
   }
 }
+
+CRGB * Control::selectRow2(uint8_t row) 
+{
+  CRGB *leds[NUM_COLS];
+  for (uint8_t col = 0; col < NUM_ROWS; col++) {
+    leds[col] = &leds_m[ atRowCol(row,col)]; 
+  }
+  return *leds;
+}
+
 void Control::selectCol(uint8_t col,CRGB *leds[NUM_ROWS]) 
 {
   // pass it a pointer to a CRGB pointer array[8], and it'll populate it with the pointers of the selected col
@@ -86,6 +89,15 @@ void Control::selectCol(uint8_t col,CRGB *leds[NUM_ROWS])
 //    DEBUG("Led number in array:\t");
 //    DEBUG_L(col*8 + i);
   }
+}
+
+CRGB * Control::selectCol2(uint8_t col) 
+{
+  CRGB *leds[NUM_ROWS];
+  for (uint8_t row = 0; row < NUM_ROWS; row++) {
+    leds[row] = &leds_m[ atRowCol(row,col)]; 
+  }
+  return *leds;
 }
 
 uint8_t Control::atRowCol(uint8_t row, uint8_t col) 
@@ -112,6 +124,19 @@ uint8_t Control::atRowCol(uint8_t row, uint8_t col)
   return i; 
 }
 
+void addGlitter( fract8 changeOfGlitter = 80)
+{
+  if( random8() < chanceOfGlitter) {
+    leds[ random16(NUM_LEDS) ] += CRGB::White;
+  }
+}
+
+void Control::pulseToBeat()
+{
+  // helper function, called every update to pulse lights to beat
+  uint8_t wave_bright = beatsin8(get_BPM(), brightness_m/6, brightness_m);
+  leds_m.setBrightness(wave_bright); 
+}
 
 
 /******************************/
@@ -198,6 +223,24 @@ void Control::rolling_rows_diag()
       }
     }
   }
+}
+
+void Control::rainbow()
+{
+  // Classic rainbow, maybe have the width represent the speed or something?
+  uint8_t width = 7; 
+  fill_rainbow( leds_m, NUM_LEDS, gHue, width);
+  
+  // could also have it pulse according to beat 
+  pulseToBeat();
+}
+
+void Control::confetti()
+{
+  // randomo coloured speckles that blink in and fade smoothly
+  fadeToBlackBy( leds_m, NUM_LEDS, 10);
+  uint8_t pos = random16(NUM_LEDS); 
+  led[pos] += CHSV( hue_m + random8(64), 200, 255);
 }
 
 
