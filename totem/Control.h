@@ -59,6 +59,7 @@ class Control
     uint8_t getBrightness() {return brightness_m;};
     
     void set_pattern(uint8_t pattern) {currentPatternNumber = pattern;}
+    string getPattern(uint8_t
     void inc_pattern();
     void dec_pattern();
     void setHueSpeed(uint8_t speeed) {speed_m = speeed;}    // control speed at which hue changes
@@ -94,6 +95,10 @@ class Control
     CRGB * selectCol2(uint8_t col);
     uint8_t atRowCol(uint8_t row, uint8_t col);     // returns index i of led at row & col (accounting for Serpentine order)
 
+    void addGlitter(fract8 chanceOfGlitter = 80);
+    void pulseToBeat(); 
+
+
     /******************************/
     /*        PATTERNS            */
     /******************************/
@@ -102,16 +107,19 @@ class Control
     bool newPattern_m;    //used to initialise new patterns
     
     //Pattern array
-    static const uint8_t numPatterns = 4;
+    static const uint8_t numPatterns = 6;
     typedef void (Control::*PatternList[numPatterns])();
-    PatternList patterns_m = { &rolling_rows_diag, &rolling_rows, &scroll_rows, &BPM_boogie  };;   // BPM_boogie, scroll_rows
+    PatternList patterns_m = { &rainbow, &confetti, &rolling_rows_diag, &rolling_rows, &scroll_rows, &BPM_boogie  };;   // BPM_boogie, scroll_rows
+    // Pattern names for display
+    static string patternNames[numPatterns] = { "Rainbow", "Confetti", "Roll Rows (D)", "Roll Rows", "Scroll Rows", "BPM Boogie" };
     
     //Patterns
     void BPM_boogie();
     void scroll_rows();
     void rolling_rows();
     void rolling_rows_diag();
-
+    void rainbow();
+    void confetti();
 
     /******************************/
     /*      TAP TEMPO CONTROL     */

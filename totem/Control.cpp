@@ -124,17 +124,18 @@ uint8_t Control::atRowCol(uint8_t row, uint8_t col)
   return i; 
 }
 
-void addGlitter( fract8 changeOfGlitter = 80)
+void Control::addGlitter( fract8 chanceOfGlitter = 80)
 {
   if( random8() < chanceOfGlitter) {
-    leds[ random16(NUM_LEDS) ] += CRGB::White;
+    leds_m[ random16(NUM_LEDS) ] += CRGB::White;
   }
 }
 
 void Control::pulseToBeat()
 {
   // helper function, called every update to pulse lights to beat
-  uint8_t wave_bright = beatsin8(get_BPM(), brightness_m/6, brightness_m);
+  //offset by 90 so peak is at start
+  uint8_t wave_bright = beatsin8(get_BPM(), brightness_m/6, brightness_m, 0, 90);   
   leds_m.setBrightness(wave_bright); 
 }
 
