@@ -5,7 +5,7 @@
 /********************************/
 // constructor
 Control::Control(CRGB *l, uint8_t nLeds) 
-  : brightness_m(96), newPattern_m(true), lastUpdate(0), currentPatternNumber(0), hue_m(0), beatNow(false)
+  : brightness_m(50), newPattern_m(true), lastUpdate(0), currentPatternNumber(0), hue_m(0), beatNow(false), speed_m(20)
 { 
   leds_m = l;
   nLeds_m = nLeds;
@@ -37,7 +37,7 @@ void Control::handleControl()
 
   updateTap();    // update tap tempo display
   
-  EVERY_N_MILLISECONDS( 20 ) { hue_m++; }
+  EVERY_N_MILLISECONDS( speed_m ) { hue_m++; }
 }
 
 void Control::inc_pattern(){
@@ -46,13 +46,6 @@ void Control::inc_pattern(){
 void Control::dec_pattern(){
   if (currentPatternNumber == 0) {currentPatternNumber = numPatterns - 1;}
   else                           {currentPatternNumber--;}
-}
-
-void Control::incHueSpeed(){
-  //
-}
-void Control::decHueSpeed() {
-  //
 }
 
 /******************************/
@@ -135,8 +128,8 @@ void Control::pulseToBeat()
 {
   // helper function, called every update to pulse lights to beat
   //offset by 90 so peak is at start
-  uint8_t wave_bright = beatsin8(get_BPM(), brightness_m/6, brightness_m, 0, 90);   
-  leds_m.setBrightness(wave_bright); 
+  uint8_t wave_bright = beatsin8(get_BPM(), brightness_m/4, brightness_m, 0, 90);   
+  FastLED.setBrightness(wave_bright); 
 }
 
 
@@ -158,7 +151,7 @@ void Control::scroll_rows()
 {
   // scrolls through each of the rows to the top, then back down
   fadeToBlackBy( leds_m, NUM_LEDS, 20);
-  uint8_t pos = beatsin16( this->get_BPM()/NUM_ROWS, 0, NUM_ROWS);  //rises up rows one row per beat
+  uint8_t pos = beatsin16( this->get_BPM()/NUM_ROWS, 0, NUM_ROWS-1);  //rises up rows one row per beat
   for (uint8_t col = 0; col < NUM_COLS; col++){
     CRGB *col_leds[8];
     selectCol(col, col_leds); //col_leds now contains pointers to LEDS
@@ -230,10 +223,10 @@ void Control::rainbow()
 {
   // Classic rainbow, maybe have the width represent the speed or something?
   uint8_t width = 7; 
-  fill_rainbow( leds_m, NUM_LEDS, gHue, width);
+  fill_rainbow( leds_m, NUM_LEDS, hue_m, width);
   
   // could also have it pulse according to beat 
-  pulseToBeat();
+  if (tapOn) {pulseToBeat();}
 }
 
 void Control::confetti()
@@ -241,7 +234,19 @@ void Control::confetti()
   // randomo coloured speckles that blink in and fade smoothly
   fadeToBlackBy( leds_m, NUM_LEDS, 10);
   uint8_t pos = random16(NUM_LEDS); 
-  led[pos] += CHSV( hue_m + random8(64), 200, 255);
+  leds_m[pos] += CHSV( hue_m + random8(64), 200, 255);
+}
+
+void Control::randomLights()
+{
+  // random lights all over
+  // eight colored dots, weaving in and out of sync with each other
+  fadeToBlackBy( leds_m, NUM_LEDS, 20);
+  byte dothue = 0;
+  for( int i = 0; i < 9; i++) {
+    leds_m[beatsin16(i+8,0,NUM_LEDS)] |= CHSV(dothue, 200, 255);
+    dothue += 16;
+  }
 }
 
 
@@ -279,24 +284,34 @@ void Control::tap()
   
   // only update tempo if we have two valid taps, greater than 6BPM
 //  if ( (currentTimer[0] + currentTimer[1])/2 < 10000) ) {
-    tempo_m = (currentTimer[0] + currentTimer[1])/2;
+
+  tempo_m = (currentTimer[0] + currentTimer[1])/2;
+  
 //  }
-  DEBUG("\tmsec b/w beats:\t");
-  DEBUG(this->get_tempo());
-  DEBUG("\tBPM:\t");
-  DEBUG_L(this->get_BPM());
+//  DEBUG("\tmsec b/w beats:\t");
+//  DEBUG(this->get_tempo());
+//  DEBUG("\tBPM:\t");
+//  DEBUG_L(this->get_BPM());
 
   CRGB *row[NUM_COLS];
   this->selectCol(2, row);
-  DEBUG("Col");
-  #ifdef DEBUG
-  for (uint8_t i = 0; i < NUM_COLS; i++){
-    DEBUG(i);
-    DEBUG(":\tR:"); DEBUG(row[i]->r);
-    DEBUG("\tG:");  DEBUG(row[i]->g);
-    DEBUG("\tB:");  DEBUG_L(row[i]->b);
-  }
-  #endif
+  
+//  DEBUG("Col");
+//  #ifdef DEBUG
+//  for (uint8_t i = 0; i < NUM_COLS; i++){
+//    DEBUG(i);
+//    DEBUG(":\tR:"); DEBUG(row[i]->r);
+//    DEBUG("\tG:");  DEBUG(row[i]->g);
+//    DEBUG("\tB:");  DEBUG_L(row[i]->b);
+//  }
+//  #endif
+}
+
+void Control::tap_toggle()
+{
+  tapOn = !tapOn;
+  DEBUG("\t TapOn: ");
+  DEBUG_L(tapOn);
 }
 
 void Control::rescheduleTimer()

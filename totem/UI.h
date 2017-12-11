@@ -11,10 +11,30 @@
 // EXTRA MODES (e.g. hue speed select, single hue select)
 // refactor button handle code (single handleButton fn that takes (button pressed and press type) and calls relevant fns)
 
+// LCD display
+/*
+  
+*/
+#include <LiquidCrystal.h>
+LiquidCrystal lcd(8, 7, 6, 5, 4, 3, 2);
+// LCD screen updates are called after each button press
+
 
 // Enum definitions
-enum UIState_t : uint8_t {pattern, brightness, speed}; 
+enum UIState_t : uint8_t {pattern, brightness, hue, manual /*, rhythm*/}; 
+const uint8_t UINumModes = 4;
 enum buttonPress_t : uint8_t {shortPress, longPress};
+struct UIDescriptions_s { int index; String text; };
+UIDescriptions_s UIDescriptions[UINumModes] = 
+//Custom array, takes UiMode and display string (could F(0) string to save space)
+//two variables, uimode index, ui display text (printed on line 0)
+{
+ {0, "Pattern Sel:"},
+ {1, "Brightness: "},
+ {2, "Hue Speed:  "},
+ {3, "Manual mode:"}/*,
+ {4, "Rhythm input:"}*/
+};
 
 // Generalised class for handling user interface
 class UI
@@ -30,6 +50,9 @@ class UI
  private:
     Control *Control_m; 
     UIState_t UIState;
+
+    //lcd display funtions (displays pattern, brightness, hue speed, etc)
+    void LCDDisplay();
     
     // Functions for controlling UI state
     void toggleButton(buttonPress_t b);
@@ -50,8 +73,8 @@ class UI
 
       
     // Pin definitions
-    const uint8_t outputPins[UI_LEDS] = {A1,A2,A3};             // output pins for feedback of UIState 
-    const uint8_t inputPins[NUM_BUTTONS] = {2,3,4,5};   //In order: toggle, inc, dec, fn
+    const uint8_t outputPins[UI_LEDS] = {11,12,13};     // output pins for feedback of UIState: pattern, brightness, hue
+    const uint8_t inputPins[NUM_BUTTONS] = {16,14,15,10};   //In order: toggle, inc, dec, fn
     
     // Button related declarations
     unsigned long lastDebounceTime[NUM_BUTTONS];  //used to debounce buttons. last time pin output toggled
@@ -59,7 +82,7 @@ class UI
     uint8_t buttonState[NUM_BUTTONS];       // current button state
     
     const unsigned short debounceDelay = 20;
-    const unsigned short holdTime[NUM_BUTTONS] = {4000,600,600,4000};
+    const unsigned short holdTime[NUM_BUTTONS] = {2000,600,600,600};
     const unsigned short repeatRate[NUM_BUTTONS] = {4000,200,200,4000}; //repeat rate different for different buttons
     // TODO, repeatRate increases if you hold down for longer
     bool trigger[NUM_BUTTONS] = {true, true, true, true};
@@ -82,15 +105,32 @@ UI::UI(Control *c)
 
 void UI::setupUI()
 {
+  // setup input buttons
   for (uint8_t i = 0; i < NUM_BUTTONS; i++)
   {
     pinMode(inputPins[i], INPUT_PULLUP);
-  }  
+  } 
+  
+  // setup output leds 
   for (uint8_t i = 0; i < UI_LEDS; i++)
   {
     pinMode(outputPins[i], OUTPUT);
     digitalWrite(outputPins[i], LOW);
   }
+
+  // Setup LCD panel 
+  // RS, En, D4, D5, D6, D7 (Rw to ground)
+//  LiquidCrystal lcd(2, 3, 4, 5, 6, 7);
+  lcd.begin(16, 2);
+  delay(50);
+  lcd.print("Setup complete!");
+  delay(500);
+  LCDDisplay();
+  
+
+  DEBUG("Pattern Name: ");
+  DEBUG_L(Control_m->getPatternName());
+  
 }
 
 void UI::handleUI()
@@ -98,7 +138,7 @@ void UI::handleUI()
   // Includes jitter protection (i.e. won't register button repress if within 20msec)
   // Inc and dec buttons keep firing after a period of time (700msec, sends button down every 200msec?)
 
-  //Output indictor lights
+  // Hangle Output indictor lights
   for (uint8_t i = 0; i < UI_LEDS; i++)
   {
     if (UIState == i){
@@ -109,7 +149,7 @@ void UI::handleUI()
     }
   }
 
-  // for each button
+  // handle button presses for each button
   for (uint8_t i = 0; i < NUM_BUTTONS; i++)
   {
     // Looking for switch that goes low as we have pullup resistors on
@@ -158,6 +198,30 @@ void UI::handleUI()
   }
 
 //  updateTap();
+//  renderUI();
+}
+
+void UI::LCDDisplay() 
+{
+  lcd.clear();
+  lcd.print(UIDescriptions[UIState].text);
+  lcd.setCursor(0,1); 
+  float bright = Control_m->getBrightness();
+  bright = bright * 0.39216;
+  switch(UIState) {
+    case pattern :
+      lcd.print( String::String("> " + Control_m->getPatternName()) );
+      break;
+    case brightness :
+      //max brightness is 255
+      lcd.print( String::String("> " + String::String(bright, 1) + "%") );
+      break;
+    case hue :
+      lcd.print( String::String("> " + Control_m->getHueSpeed() + " msec/d"));
+      break;
+    case manual :
+      break;
+  }
 }
 
 void UI::toggleButton(buttonPress_t p)
@@ -174,14 +238,21 @@ void UI::toggleButton(buttonPress_t p)
         DEBUG_L("Brightness");
         break;
       case brightness :
-        UIState = speed;        
+        UIState = hue;        
         DEBUG_L("Speed");
         break;
-      case speed : 
-        UIState = pattern;      
+      case hue : 
+        UIState = manual;      
+        DEBUG_L("Manual");
+        break;
+      case manual :
+        UIState = pattern;
         DEBUG_L("Pattern");
         break;
     }
+//    lcd.clear();
+//    lcd.print(UIDescriptions[UIState].text);
+//    LCDDisplayValues();
   }
   // Long press ??
   // Possible modes: pattern (default), brightness, speed. Inditacted by lights
@@ -190,6 +261,8 @@ void UI::toggleButton(buttonPress_t p)
     // do something fun. Maybe default/reset/lasers on&off?
     DEBUG("\t(long press)");
   }
+  
+  LCDDisplay();
 }
 
 void UI::incButton(buttonPress_t p)
@@ -211,12 +284,16 @@ void UI::incButton(buttonPress_t p)
       DEBUG("Brightness:\t");
       DEBUG_L(Control_m->getBrightness());
       break;
-    case speed :
+    case hue :
       // inc speed
       DEBUG_L("\t(inc speed)");
       Control_m->incHueSpeed();
       break;
+    case manual :
+      //
+      break;
     }
+    
   } else if (p == longPress)
   {
     // long press
@@ -237,13 +314,18 @@ void UI::incButton(buttonPress_t p)
       DEBUG("Brightness:\t");
       DEBUG_L(Control_m->getBrightness());
       break;
-    case speed :
+    case hue :
       // inc speed
-      DEBUG_L("\t(inc speed)");
-      //Control_m->incSpeed(5);
+      DEBUG_L("\t(inc hue speed)");
+      Control_m->incHueSpeed();
+      break;
+    case manual :
+      // manual mode
       break;
     }
   }
+  // update LCD values
+  LCDDisplay();
 }
 
 void UI::decButton(buttonPress_t p)
@@ -265,10 +347,13 @@ void UI::decButton(buttonPress_t p)
       DEBUG("Brightness:\t");
       DEBUG_L(Control_m->getBrightness());
       break;
-    case speed :
-      // dec speed
+    case hue :
+      // dec hue speed
       DEBUG_L("\t(dec speed)");
       Control_m->decHueSpeed();
+      break;
+    case manual :
+      // manual mode
       break;
     }
   } else if (p == longPress)
@@ -277,27 +362,32 @@ void UI::decButton(buttonPress_t p)
     DEBUG_L("\t(Long press)");
     uint8_t multiplier = 1;
     switch(UIState){
-    case pattern :
-      // decrement pattern
-      DEBUG_L("\t(inc pattern)");
-      //Control_m->decPattern();
-      break;
-    case brightness :
-      // dec brightness
-      DEBUG_L("\t(dec brightness)");
-      // speed up decrement if button held for longer
-      if (( millis() - lastDebounceTime[2] ) > 2000)       {multiplier = 2;} 
-      Control_m->decBrightness(5*multiplier);
-      DEBUG("Brightness:\t");
-      DEBUG_L(Control_m->getBrightness());
-      break;
-    case speed :
-      // inc speed
-      DEBUG_L("\t(inc speed)");
-      //Control_m->incSpeed(5);
-      break;
+      case pattern :
+        // decrement pattern
+        DEBUG_L("\t(inc pattern)");
+        //Control_m->decPattern();
+        break;
+      case brightness :
+        // dec brightness
+        DEBUG_L("\t(dec brightness)");
+        // speed up decrement if button held for longer
+        if (( millis() - lastDebounceTime[2] ) > 2000)       {multiplier = 2;} 
+        Control_m->decBrightness(5*multiplier);
+        DEBUG("Brightness:\t");
+        DEBUG_L(Control_m->getBrightness());
+        break;
+      case hue :
+        // inc hue speed
+        DEBUG_L("\t(dec hue speed)");
+        Control_m->decHueSpeed();
+        break;
+      case manual :
+        // manual mode
+        break;
     }
   }
+  // update lcd values
+  LCDDisplay();
 }
 
 void UI::fnButton(buttonPress_t p)
@@ -305,17 +395,43 @@ void UI::fnButton(buttonPress_t p)
   if (p == shortPress)
   {
     DEBUG_L("Function Button (Short press)");
-    Control_m->tap();
+    
     switch(UIState){
-    case pattern :
-      // temporary flash pattern while held down?
-    case brightness :
-      // ?change max brightness
-      break;
-    case speed :
-      // tap tempo
-      //tap();
-      break;
+      case pattern :
+        // temporary flash pattern while held down?
+//        break;
+      case brightness :
+        // ?change max brightness
+//        break;
+      case hue :
+        // tap tempo
+        //tap();
+        Control_m->tap();
+        break;
+      case manual :
+        // Manual mode
+        // fx hit
+        break;
+    }
+  } else if (p == longPress)
+  {
+    DEBUG_L("Function Button (Long press)");
+    switch(UIState){
+      case pattern :
+        // temporary flash pattern while held down?
+//        break;
+      case brightness :
+        // ?change max brightness
+//        break;
+      case hue :
+        // tap tempo
+        //tap();
+        Control_m->tap_toggle();
+        break;
+      case manual :
+        // Manual mode
+        // fx hit
+        break;
     }
   }
 }
@@ -323,9 +439,6 @@ void UI::fnButton(buttonPress_t p)
 
 void UI::renderUI() {
   //potentially output to OSC
-  uint8_t brightness_temp = 96;
-  uint8_t speed_temp = 10;
-  
-  
+    
 }
 

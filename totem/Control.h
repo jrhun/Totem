@@ -6,12 +6,13 @@
 #ifndef CONTROL_H
 #define CONTROL_H
 
-#define DEBUG
+//#define DEBUG
 #ifdef DEBUG
   #define DEBUG(x)    Serial.print(x)
   #define DEBUG_L(x)  Serial.println(x)
 #else
   #define DEBUG(x)
+  #define DEBUG_L(x)
 #endif
 #define DISPLAY
 #ifdef DISPLAY
@@ -23,16 +24,17 @@
 
 // Information about the LED strip itself
 #define LED_PIN     9
-#define NUM_COLS    8
-#define NUM_ROWS    8
+#define NUM_COLS    9
+#define NUM_ROWS    9
 #define NUM_LEDS    (NUM_COLS * NUM_ROWS) //using an 8x8 matrix of LEDS eventually...
 //#define NUM_LEDS    8
-const bool MatrixSerpentineLayout = false; //if LEDs are snaking or not (most likely, yes)
+const bool MatrixSerpentineLayout = true; //if LEDs are snaking or not (most likely, yes)
 #define CHIPSET     WS2812B
 #define COLOR_ORDER GRB
 #define TEMPERATURE OvercastSky
 
-#define TAP_PIN           A0    //for tap tempo
+#define TAP_PIN           A3    //for tap tempo
+
 
 // todo MORE PATTERNS
 // sync all patterns to BPM using bool beatNow (see rolling_rows() for example)
@@ -59,18 +61,20 @@ class Control
     uint8_t getBrightness() {return brightness_m;};
     
     void set_pattern(uint8_t pattern) {currentPatternNumber = pattern;}
-    string getPattern(uint8_t
+    String getPatternName() {return String::String(patternNames[currentPatternNumber]);}
     void inc_pattern();
     void dec_pattern();
     void setHueSpeed(uint8_t speeed) {speed_m = speeed;}    // control speed at which hue changes
-    void incHueSpeed();
-    void decHueSpeed();
+    String getHueSpeed() {return String::String(speed_m);}  // between 5 - 95msec for hue change
+    void incHueSpeed(uint8_t i = 3) {speed_m = max(speed_m - i, 5);}
+    void decHueSpeed(uint8_t i = 3) {speed_m = min(speed_m + i, 95);}
     void set_tempo(unsigned short tempo) {tempo_m = tempo;}
 
     //tap tempo functions
     unsigned short get_tempo() {return constrain(tempo_m, 200, 2000) ; }
     uint8_t get_BPM() {return (60000/tempo_m);}
     void tap();
+    void tap_toggle();
 
   private:
     //Varibles for FPS
@@ -98,7 +102,6 @@ class Control
     void addGlitter(fract8 chanceOfGlitter = 80);
     void pulseToBeat(); 
 
-
     /******************************/
     /*        PATTERNS            */
     /******************************/
@@ -107,19 +110,20 @@ class Control
     bool newPattern_m;    //used to initialise new patterns
     
     //Pattern array
-    static const uint8_t numPatterns = 6;
+    static const uint8_t numPatterns = 7;
     typedef void (Control::*PatternList[numPatterns])();
-    PatternList patterns_m = { &rainbow, &confetti, &rolling_rows_diag, &rolling_rows, &scroll_rows, &BPM_boogie  };;   // BPM_boogie, scroll_rows
-    // Pattern names for display
-    static string patternNames[numPatterns] = { "Rainbow", "Confetti", "Roll Rows (D)", "Roll Rows", "Scroll Rows", "BPM Boogie" };
+    PatternList patterns_m = { &rainbow, &confetti, &rolling_rows_diag, &rolling_rows, &scroll_rows, &BPM_boogie, &randomLights  };;   // BPM_boogie, scroll_rows
+    // Pattern names for display, max 14 chars
+    const char *patternNames[numPatterns] = { "Rainbow", "Confetti", "Roll Rows (D)", "Roll Rows", "Scroll Rows", "BPM Boogie", "Random Lights" };
     
     //Patterns
-    void BPM_boogie();
-    void scroll_rows();
-    void rolling_rows();
-    void rolling_rows_diag();
     void rainbow();
     void confetti();
+    void rolling_rows_diag();
+    void rolling_rows();
+    void BPM_boogie();
+    void scroll_rows();
+    void randomLights();
 
     /******************************/
     /*      TAP TEMPO CONTROL     */
@@ -127,6 +131,7 @@ class Control
     //variables
     int lastTapState = LOW;  /* the last tap button state */
     bool beatNow = false;
+    bool tapOn = true;
     unsigned long currentTimer[2] = { 500, 500 };  /* array of most recent tap counts */
     unsigned long timeoutTime = 0;  /* this is when the timer will trigger next */
 

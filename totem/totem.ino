@@ -9,12 +9,15 @@ UI ui(&Control);
 
 void setup() {
   // put your setup code here, to run once:
-  Serial.begin(115200);
-  while (!Serial);
+//  #ifdef DEBUG
+//    Serial.begin(115200);
+//    while (!Serial);
+//  #endif
   
   Control.setupControl();
   ui.setupUI();
-  Serial.println("Setup Complete");
+  
+//  DEBUG_L("Setup Complete");
 }
 
 void loop() {
